@@ -13,7 +13,7 @@ const lineLayer: LineLayer = {
     "line-color": [
       "interpolate",
       ["linear"],
-      ["get", "avg"],
+      ["get", "value"],
       THRESHOLD,
       "orange",
       100,
@@ -23,7 +23,7 @@ const lineLayer: LineLayer = {
     "line-opacity": [
       "interpolate",
       ["linear"],
-      ["get", "avg"],
+      ["get", "value"],
       0,
       0,
       THRESHOLD,

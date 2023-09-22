@@ -23,14 +23,15 @@ async function getData(url: string) {
 }
 
 function App() {
+  const [msHackMode, setMsHackMode] = useState<boolean>(false);
   const [pointData, setPointData] = useState<FeatureCollection>();
   const [lineData, setLineData] = useState<FeatureCollection>();
 
   async function updateData() {
     const pointUrl =
-      "https://nmkuqyrotfsszqglglld.supabase.co/rest/v1/heatmap_view?";
+      "https://nmkuqyrotfsszqglglld.supabase.co/rest/v1/points_mapped?";
     const lineUrl =
-      "https://nmkuqyrotfsszqglglld.supabase.co/rest/v1/testview?";
+      "https://nmkuqyrotfsszqglglld.supabase.co/rest/v1/segments_mapped?";
 
     const pointData = await getData(pointUrl);
     const lineData = await getData(lineUrl);
@@ -45,7 +46,10 @@ function App() {
   }, []);
 
   return (
-    <>
+    <div className={`app ${msHackMode ? "mshack" : "regular"}`}>
+      <div className="button" onClick={() => setMsHackMode((m) => !m)}>
+        MS-Hack
+      </div>
       <Map
         initialViewState={{
           longitude: 7.6261,
@@ -53,12 +57,16 @@ function App() {
           zoom: 14,
         }}
         style={{ width: "100%", height: "100%" }}
-        mapStyle="https://maps.moritz.tk/style.json"
+        mapStyle={
+          msHackMode
+            ? "https://maps.moritz.tk/style-ms-hack.json"
+            : "https://maps.moritz.tk/style.json"
+        }
       >
         <Points data={pointData} />
         <Lines data={lineData} />
       </Map>
-    </>
+    </div>
   );
 }
 
