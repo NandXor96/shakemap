@@ -13,15 +13,15 @@ const circleLayer: CircleLayer = {
   source: "point",
   type: "circle",
   paint: {
-    "circle-radius": 10,
+    "circle-radius": ["interpolate", ["linear"], ["zoom"], 12, 1, 20, 10],
     "circle-color": [
       "interpolate",
       ["linear"],
       ["get", "value"],
       0,
-      "#D64550",
-      100,
       "#475B63",
+      100,
+      "#D64550",
     ],
   },
 };
@@ -87,11 +87,17 @@ const heatmapLayer: HeatmapLayer = {
     ],
   },
 };
-export function Heatmap({ data }: { data?: FeatureCollection }) {
+export function Points({
+  data,
+  withHeatmap,
+}: {
+  data?: FeatureCollection;
+  withHeatmap?: boolean;
+}) {
   return (
     <Source id="point" type="geojson" data={data}>
       <Layer {...circleLayer} />
-      <Layer {...heatmapLayer} />
+      {withHeatmap ? <Layer {...heatmapLayer} /> : null}
     </Source>
   );
 }

@@ -1,9 +1,9 @@
-import Map, { Layer, LineLayer, Source } from "react-map-gl/maplibre";
+import Map from "react-map-gl/maplibre";
 import "maplibre-gl/dist/maplibre-gl.css";
 
 import type { FeatureCollection } from "geojson";
 import { useEffect, useState } from "react";
-import { Heatmap } from "./Heatmap";
+import { Points } from "./Points";
 
 function App() {
   const [geojson, setGeojson] = useState<FeatureCollection>();
@@ -40,7 +40,7 @@ function App() {
         style={{ width: "100%", height: "100%" }}
         mapStyle="https://maps.moritz.tk/style.json"
       >
-        <Heatmap data={geojson} />
+        <Points data={geojson} />
       </Map>
     </>
   );
