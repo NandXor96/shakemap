@@ -82,11 +82,9 @@ void PrintVector(double *vData, uint16_t bufferSize, uint8_t scaleType) {
     Serial.println();
 }
 
-void fft() {
+void fft(int16_t *buffer) {
     for (uint16_t i = 0; i < samples; i++) {
-        int16_t *activeBuffer = buffer1acquisition ? buffer1 : buffer2;
-
-        double norm = sqrt(pow(activeBuffer[3 * samples], 2) + pow(activeBuffer[3 * samples + 1], 2) + pow(activeBuffer[3 * samples + 2], 2));
+        double norm = sqrt(pow(buffer[3 * samples], 2) + pow(buffer[3 * samples + 1], 2) + pow(buffer[3 * samples + 2], 2));
         vReal[i] = norm;
         vImag[i] = 0.0;                                                                                        // Imaginary part must be zeroed in case of looping to avoid wrong calculations and overflows
     }
@@ -153,41 +151,42 @@ void loop() {
         buffer1acquisition = !buffer1acquisition;
         writeIndex = 0;
 
-        // // run fft once
-        // Serial.print("FFT on buffer");
-        // Serial.println(buffer1acquisition ? "2" : "1");
-        // fft();
+        // run fft once
+        Serial.print("FFT on buffer");
+        Serial.println(buffer1acquisition ? "2" : "1");
+        int16_t *fftBuffer = buffer1acquisition ? buffer2 : buffer1;
+        fft(fftBuffer);
 
-        // Serial.print("Active Aquisition Buffer:");
-        // Serial.print(buffer1acquisition ? "1" : "2");
-        // Serial.println();
+        Serial.print("Active Aquisition Buffer:");
+        Serial.print(buffer1acquisition ? "1" : "2");
+        Serial.println();
     }
 
-    Serial.print("Active Buffer:");
-    Serial.print(buffer1acquisition ? "1" : "2");
-    Serial.print(",WriteIndex:");
-    Serial.print(writeIndex);
+    // Serial.print("Active Buffer:");
+    // Serial.print(buffer1acquisition ? "1" : "2");
+    // Serial.print(",WriteIndex:");
+    // Serial.print(writeIndex);
 
-    // print latest data
-    if (writeIndex > 0) {
-        int16_t *activeBuffer = buffer1acquisition ? buffer1 : buffer2;
-        Serial.print(",ax:");
-        Serial.print(activeBuffer[(writeIndex * 3) - 3]);
-        Serial.print(",ay:");
-        Serial.print(activeBuffer[(writeIndex * 3) - 2]);
-        Serial.print(",az:");
-        Serial.print(activeBuffer[(writeIndex * 3) - 1]);
-        Serial.print(",norm:");
-        Serial.print(sqrt(pow(activeBuffer[(writeIndex * 3) - 3], 2) + pow(activeBuffer[(writeIndex * 3) - 2], 2) + pow(activeBuffer[(writeIndex * 3) - 1], 2)));
-    }
+    // // print latest data
+    // if (writeIndex > 0) {
+    //     int16_t *activeBuffer = buffer1acquisition ? buffer1 : buffer2;
+    //     Serial.print(",ax:");
+    //     Serial.print(activeBuffer[(writeIndex * 3) - 3]);
+    //     Serial.print(",ay:");
+    //     Serial.print(activeBuffer[(writeIndex * 3) - 2]);
+    //     Serial.print(",az:");
+    //     Serial.print(activeBuffer[(writeIndex * 3) - 1]);
+    //     Serial.print(",norm:");
+    //     Serial.print(sqrt(pow(activeBuffer[(writeIndex * 3) - 3], 2) + pow(activeBuffer[(writeIndex * 3) - 2], 2) + pow(activeBuffer[(writeIndex * 3) - 1], 2)));
+    // }
 
-    // Calculate loop time and frequency
-    uint32_t loop_time = micros() - last_loop_time;
-    last_loop_time = micros();
-    float loop_freq = 1000000.0 / loop_time;
-    Serial.print(",loopFreq:");
-    Serial.print(loop_freq);
+    // // Calculate loop time and frequency
+    // uint32_t loop_time = micros() - last_loop_time;
+    // last_loop_time = micros();
+    // float loop_freq = 1000000.0 / loop_time;
+    // Serial.print(",loopFreq:");
+    // Serial.print(loop_freq);
 
-    Serial.println("");
+    // Serial.println("");
     Serial.flush();
 }
