@@ -1,0 +1,19 @@
+create view
+  public.segments_mapped as
+select
+  json_build_object(
+    'type',
+    'FeatureCollection',
+    'features',
+    json_agg(st_asgeojson (t.*)::json)
+  ) as json_build_object
+from
+  (
+    select
+      mapping.closest_feature_geometry as geom,
+      avg(mapping.value) as value
+    from
+      mapping
+    group by
+      mapping.closest_feature_geometry
+  ) t (geom, value);

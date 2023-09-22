@@ -1,0 +1,17 @@
+create view
+  public.points as
+select
+  json_build_object(
+    'type',
+    'FeatureCollection',
+    'features',
+    json_agg(st_asgeojson (t.*)::json)
+  ) as json_build_object
+from
+  (
+    select
+      generated_values.location,
+      generated_values.value
+    from
+      generated_values
+  ) t (geom, value);
