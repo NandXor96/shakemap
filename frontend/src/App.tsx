@@ -4,26 +4,41 @@ import "maplibre-gl/dist/maplibre-gl.css";
 import type { FeatureCollection } from "geojson";
 import { useEffect, useState } from "react";
 import { Points } from "./Points";
+import { Lines } from "./Lines";
+
+async function getData(url: string) {
+  const API_KEY =
+    "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im5ta3VxeXJvdGZzc3pxZ2xnbGxkIiwicm9sZSI6ImFub24iLCJpYXQiOjE2OTUzNzkyNjIsImV4cCI6MjAxMDk1NTI2Mn0.elRWzQwl_lppri_s87Ho2sfd0HLodYKzCAQVpNXNgwA";
+
+  const result = await window.fetch(url, {
+    headers: {
+      apikey: API_KEY,
+      Authorization: `Bearer ${API_KEY}`,
+    },
+  });
+  const [{ json_build_object: data }]: {
+    json_build_object: FeatureCollection;
+  }[] = await result.json();
+  return data;
+}
 
 function App() {
-  const [geojson, setGeojson] = useState<FeatureCollection>();
-  async function updateData() {
-    const url =
-      "https://nmkuqyrotfsszqglglld.supabase.co/rest/v1/heatmap_view?";
-    const API_KEY =
-      "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im5ta3VxeXJvdGZzc3pxZ2xnbGxkIiwicm9sZSI6ImFub24iLCJpYXQiOjE2OTUzNzkyNjIsImV4cCI6MjAxMDk1NTI2Mn0.elRWzQwl_lppri_s87Ho2sfd0HLodYKzCAQVpNXNgwA";
+  const [pointData, setPointData] = useState<FeatureCollection>();
+  const [lineData, setLineData] = useState<FeatureCollection>();
 
-    const result = await window.fetch(url, {
-      headers: {
-        apikey: API_KEY,
-        Authorization: `Bearer ${API_KEY}`,
-      },
-    });
-    const [{ json_build_object: geojson }]: {
-      json_build_object: FeatureCollection;
-    }[] = await result.json();
-    console.log(geojson);
-    setGeojson(geojson);
+  async function updateData() {
+    const pointUrl =
+      "https://nmkuqyrotfsszqglglld.supabase.co/rest/v1/heatmap_view?";
+    const lineUrl =
+      "https://nmkuqyrotfsszqglglld.supabase.co/rest/v1/testview?";
+
+    const pointData = await getData(pointUrl);
+    const lineData = await getData(lineUrl);
+
+    console.log(lineData);
+
+    setPointData(pointData);
+    setLineData(lineData);
   }
   useEffect(() => {
     updateData();
@@ -40,7 +55,8 @@ function App() {
         style={{ width: "100%", height: "100%" }}
         mapStyle="https://maps.moritz.tk/style.json"
       >
-        <Points data={geojson} />
+        <Points data={pointData} />
+        <Lines data={lineData} />
       </Map>
     </>
   );

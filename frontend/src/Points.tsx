@@ -8,20 +8,35 @@ import "maplibre-gl/dist/maplibre-gl.css";
 
 import type { FeatureCollection } from "geojson";
 
+import { THRESHOLD } from "./const";
+
 const circleLayer: CircleLayer = {
   id: "point",
   source: "point",
   type: "circle",
   paint: {
     "circle-radius": ["interpolate", ["linear"], ["zoom"], 12, 1, 20, 10],
+
     "circle-color": [
       "interpolate",
       ["linear"],
       ["get", "value"],
-      0,
-      "#475B63",
+      THRESHOLD,
+      "orange",
       100,
-      "#D64550",
+      "red",
+    ],
+
+    "circle-opacity": [
+      "interpolate",
+      ["linear"],
+      ["get", "value"],
+      0,
+      0,
+      THRESHOLD,
+      0,
+      THRESHOLD + 0.1,
+      1,
     ],
   },
 };
@@ -87,6 +102,7 @@ const heatmapLayer: HeatmapLayer = {
     ],
   },
 };
+
 export function Points({
   data,
   withHeatmap,
