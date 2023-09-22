@@ -1,116 +1,108 @@
-// Basic demo for accelerometer readings from Adafruit MPU6050
+// I2Cdev and MPU6050 must be installed as libraries, or else the .cpp/.h files
+// for both classes must be in the include path of your project
+#include "I2Cdev.h"
+#include "MPU6050.h"
 
-#include <Adafruit_MPU6050.h>
-#include <Adafruit_Sensor.h>
-#include <Wire.h>
+TaskHandle_t Task1;
+hw_timer_t *Timer0_Cfg = NULL;
 
-Adafruit_MPU6050 mpu;
+#define BUFFER_SIZE 1000
+int16_t buffer1[BUFFER_SIZE * 3];            // Assuming 3 values per entry (x, y, z)
+int16_t buffer2[BUFFER_SIZE * 3];            // Assuming 3 values per entry (x, y, z)
+volatile boolean buffer1acquisition = true;  // indicates the current buffer being filled by sensor data
+volatile int16_t writeIndex = 0;             // Current index of the data acquisition
+volatile boolean aquireDataFlag = false;     // Flag to indicate that data should be acquired
 
-void setup(void) {
-  Serial.begin(115200);
-  while (!Serial)
-    delay(10); // will pause Zero, Leonardo, etc until serial console opens
+MPU6050 accelgyro;
 
-  Serial.println("Adafruit MPU6050 test!");
+// uncomment "OUTPUT_READABLE_ACCELGYRO" if you want to see a tab-separated
+// list of the accel X/Y/Z and then gyro X/Y/Z values in decimal. Easy to read,
+// not so easy to parse, and slow(er) over UART.
+#define OUTPUT_READABLE_ACCELGYRO
 
-  // Try to initialize!
-  if (!mpu.begin()) {
-    Serial.println("Failed to find MPU6050 chip");
-    while (1) {
-      delay(10);
-    }
-  }
-  Serial.println("MPU6050 Found!");
-
-  mpu.setAccelerometerRange(MPU6050_RANGE_8_G);
-  Serial.print("Accelerometer range set to: ");
-  switch (mpu.getAccelerometerRange()) {
-  case MPU6050_RANGE_2_G:
-    Serial.println("+-2G");
-    break;
-  case MPU6050_RANGE_4_G:
-    Serial.println("+-4G");
-    break;
-  case MPU6050_RANGE_8_G:
-    Serial.println("+-8G");
-    break;
-  case MPU6050_RANGE_16_G:
-    Serial.println("+-16G");
-    break;
-  }
-  mpu.setGyroRange(MPU6050_RANGE_500_DEG);
-  Serial.print("Gyro range set to: ");
-  switch (mpu.getGyroRange()) {
-  case MPU6050_RANGE_250_DEG:
-    Serial.println("+- 250 deg/s");
-    break;
-  case MPU6050_RANGE_500_DEG:
-    Serial.println("+- 500 deg/s");
-    break;
-  case MPU6050_RANGE_1000_DEG:
-    Serial.println("+- 1000 deg/s");
-    break;
-  case MPU6050_RANGE_2000_DEG:
-    Serial.println("+- 2000 deg/s");
-    break;
-  }
-
-  mpu.setFilterBandwidth(MPU6050_BAND_21_HZ);
-  Serial.print("Filter bandwidth set to: ");
-  switch (mpu.getFilterBandwidth()) {
-  case MPU6050_BAND_260_HZ:
-    Serial.println("260 Hz");
-    break;
-  case MPU6050_BAND_184_HZ:
-    Serial.println("184 Hz");
-    break;
-  case MPU6050_BAND_94_HZ:
-    Serial.println("94 Hz");
-    break;
-  case MPU6050_BAND_44_HZ:
-    Serial.println("44 Hz");
-    break;
-  case MPU6050_BAND_21_HZ:
-    Serial.println("21 Hz");
-    break;
-  case MPU6050_BAND_10_HZ:
-    Serial.println("10 Hz");
-    break;
-  case MPU6050_BAND_5_HZ:
-    Serial.println("5 Hz");
-    break;
-  }
-
-  Serial.println("");
-  delay(100);
+void IRAM_ATTR Timer0_ISR() {
+    aquireDataFlag = true;
 }
 
+void aquireData() {
+    if (writeIndex < BUFFER_SIZE) {
+        // get pointer to the current address in the correct buffer
+        int16_t *buffer = buffer1acquisition ? buffer1 : buffer2;
+        // get pointer to the current address in the other buffer
+        buffer += (3 * writeIndex);
+        int16_t ax, ay, az;
+        accelgyro.getAcceleration(buffer, buffer + 1, buffer + 2);
+        writeIndex++;
+    }
+}
+
+void Task1code(void *parameter) {
+    while (true) {
+        if (aquireDataFlag) {
+            aquireData();
+            aquireDataFlag = false;
+        }
+    }
+}
+
+void setup() {
+// join I2C bus (I2Cdev library doesn't do this automatically)
+#if I2CDEV_IMPLEMENTATION == I2CDEV_ARDUINO_WIRE
+    Wire.begin();
+#elif I2CDEV_IMPLEMENTATION == I2CDEV_BUILTIN_FASTWIRE
+    Fastwire::setup(400, true);
+#endif
+
+    Serial.begin(115200);
+
+    // initialize device
+    Serial.println("Initializing I2C devices...");
+    accelgyro.initialize();
+
+    // verify connection
+    Serial.println("Testing device connections...");
+    Serial.println(accelgyro.testConnection() ? "MPU6050 connection successful" : "MPU6050 connection failed");
+
+    Timer0_Cfg = timerBegin(0, 80, true);  // Timer runs at 80 MHz (prescaler 1), now at 1 MHz with prescaler 80
+    timerAttachInterrupt(Timer0_Cfg, &Timer0_ISR, true);
+    timerAlarmWrite(Timer0_Cfg, 50000, true);  // 50 ms
+    timerAlarmEnable(Timer0_Cfg);
+
+    xTaskCreatePinnedToCore(
+        Task1code, /* Function to implement the task */
+        "Task1",   /* Name of the task */
+        10000,     /* Stack size in words */
+        NULL,      /* Task input parameter */
+        0,         /* Priority of the task */
+        &Task1,    /* Task handle. */
+        0);        /* Core where the task should run */
+}
+
+uint32_t last_loop_time = 0;
 void loop() {
+    Serial.print("Active Buffer:");
+    Serial.print(buffer1acquisition ? "1" : "2");
+    Serial.print(",WriteIndex:");
+    Serial.print(writeIndex);
 
-  /* Get new sensor events with the readings */
-  sensors_event_t a, g, temp;
-  mpu.getEvent(&a, &g, &temp);
+    // print latest data
+    if (writeIndex > 0) {
+        int16_t *activeBuffer = buffer1acquisition ? buffer1 : buffer2;
+        Serial.print(",ax:");
+        Serial.print(activeBuffer[(writeIndex * 3) - 3]);
+        Serial.print(",ay:");
+        Serial.print(activeBuffer[(writeIndex * 3) - 2]);
+        Serial.print(",az:");
+        Serial.print(activeBuffer[(writeIndex * 3) - 1]);
+    }
 
-  // Serial.print("Timestamp: ");
-  // Serial.print(a.timestamp);
+    // Calculate loop time and frequency
+    uint32_t loop_time = micros() - last_loop_time;
+    last_loop_time = micros();
+    float loop_freq = 1000000.0 / loop_time;
+    Serial.print(",loopFreq:");
+    Serial.print(loop_freq);
 
-  // /* Print out the values */
-  // Serial.print("Acceleration X: ");
-  // Serial.print(a.acceleration.x);
-  // Serial.print(", Y: ");
-  // Serial.print(a.acceleration.y);
-  // Serial.print(", Z: ");
-  // Serial.print(a.acceleration.z);
-  // Serial.println(" m/s^2");
-
-  /* Print acceleration values for display in Arduino IDE monitor */
-  Serial.print("accX=");
-  Serial.print(a.acceleration.x);
-  Serial.print(" ; accY=");
-  Serial.print(a.acceleration.y);
-  Serial.print(" ; accZ=");
-  Serial.print(a.acceleration.z);
-
-
-  Serial.println("");
+    Serial.println("");
+    Serial.flush();
 }
