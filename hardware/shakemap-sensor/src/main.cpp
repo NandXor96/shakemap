@@ -7,7 +7,7 @@
 TaskHandle_t Task1;
 hw_timer_t *Timer0_Cfg = NULL;
 
-#define BUFFER_SIZE 2048
+#define BUFFER_SIZE 1024
 int16_t buffer1[BUFFER_SIZE * 3];            // Assuming 3 values per entry (x, y, z)
 int16_t buffer2[BUFFER_SIZE * 3];            // Assuming 3 values per entry (x, y, z)
 volatile boolean buffer1acquisition = true;  // indicates the current buffer being filled by sensor data
@@ -18,8 +18,8 @@ MPU6050 accelgyro;
 
 // FFT
 arduinoFFT FFT = arduinoFFT();         /* Create FFT object */
-const uint16_t samples = BUFFER_SIZE;          // This value MUST ALWAYS be a power of 2
-const double samplingFrequency = 1024;  // Hz
+const uint16_t samples = BUFFER_SIZE;  // This value MUST ALWAYS be a power of 2
+const double samplingFrequency = 512;  // Hz
 
 /*
 These are the input and output vectors
@@ -84,15 +84,16 @@ void PrintVector(double *vData, uint16_t bufferSize, uint8_t scaleType) {
 
 void fft(int16_t *buffer) {
     for (uint16_t i = 0; i < samples; i++) {
-        double norm = sqrt(pow(buffer[3 * samples], 2) + pow(buffer[3 * samples + 1], 2) + pow(buffer[3 * samples + 2], 2));
-        vReal[i] = norm;
-        vImag[i] = 0.0;                                                                                        // Imaginary part must be zeroed in case of looping to avoid wrong calculations and overflows
+        // double norm = sqrt(pow(buffer[3 * samples], 2) + pow(buffer[3 * samples + 1], 2) + pow(buffer[3 * samples + 2], 2));
+
+        double value = 0;
+        value += buffer[3 * i + 2];
+        vReal[i] = value;
+        vImag[i] = 0.0;  // Imaginary part must be zeroed in case of looping to avoid wrong calculations and overflows
     }
 
     FFT = arduinoFFT(vReal, vImag, samples, samplingFrequency); /* Create FFT object */
     /* Print the results of the simulated sampling according to time */
-    // Serial.println("Data:");
-    // PrintVector(vReal, samples, SCL_TIME);
     FFT.Windowing(FFT_WIN_TYP_HAMMING, FFT_FORWARD); /* Weigh data */
     // Serial.println("Weighed data:");
     // PrintVector(vReal, samples, SCL_TIME);
@@ -152,14 +153,14 @@ void loop() {
         writeIndex = 0;
 
         // run fft once
-        Serial.print("FFT on buffer");
-        Serial.println(buffer1acquisition ? "2" : "1");
+        // Serial.print("FFT on buffer");
+        // Serial.println(buffer1acquisition ? "2" : "1");
         int16_t *fftBuffer = buffer1acquisition ? buffer2 : buffer1;
         fft(fftBuffer);
 
-        Serial.print("Active Aquisition Buffer:");
-        Serial.print(buffer1acquisition ? "1" : "2");
-        Serial.println();
+        // Serial.print("Active Aquisition Buffer:");
+        // Serial.print(buffer1acquisition ? "1" : "2");
+        // Serial.println();
     }
 
     // Serial.print("Active Buffer:");
