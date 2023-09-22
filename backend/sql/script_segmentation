@@ -1,0 +1,11 @@
+-- Supabase AI is experimental and may produce incorrect answers
+-- Always verify the output before executing
+
+insert into
+  osm_segments (geom)
+select
+  (
+    ST_DumpSegments (ST_Segmentize (feature, 10)::geometry)
+  ).geom as geom
+from
+  osm

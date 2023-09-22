@@ -1,0 +1,9 @@
+create view
+  public.generated_values as
+select
+  ds_measurements.id,
+  ds_measurements.location,
+  ds_measurements."timestamp",
+  ds_measurements.mean_0_1hz + ds_measurements.stdev_0_1hz + ds_measurements.mean_1_1hz + ds_measurements.stdev_1_1hz as value
+from
+  ds_measurements;
