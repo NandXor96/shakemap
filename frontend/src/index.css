@@ -86,6 +86,11 @@ aside .title {
   border-left: 2px solid black;
 }
 
+.mshack aside .logo {
+  opacity: 1;
+  filter: drop-shadow(3px 3px 0px black);
+}
+
 .mshack aside .title {
   opacity: 1;
 }

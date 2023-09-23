@@ -7,7 +7,8 @@ import Map, {
 } from "react-map-gl/maplibre";
 import "maplibre-gl/dist/maplibre-gl.css";
 
-import Logo from "./assets/logo_mono.svg?react";
+import LogoMono from "./assets/logo_mono.svg?react";
+import LogoColor from "./assets/logo_color.svg?react";
 
 import type { FeatureCollection } from "geojson";
 import { useEffect, useRef, useState } from "react";
@@ -15,6 +16,7 @@ import { Points } from "./Points";
 import { Lines } from "./Lines";
 import { LineInfo } from "./LineInfo";
 import { Lanes } from "./Lanes";
+import { Intro } from "./Intro";
 
 async function getData(url: string) {
   const API_KEY =
@@ -109,9 +111,13 @@ function App() {
       <aside>
         <div className="header">
           <div className="title">Shake Map</div>
-          <Logo className="logo" />
+          {msHackMode ? (
+            <LogoColor className="logo" />
+          ) : (
+            <LogoMono className="logo" />
+          )}
         </div>
-        {highlightedLine && <LineInfo line={highlightedLine} />}
+        {highlightedLine ? <LineInfo line={highlightedLine} /> : <Intro />}
       </aside>
     </div>
   );
