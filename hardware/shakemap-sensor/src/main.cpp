@@ -5,13 +5,24 @@
 #include "arduinoFFT.h"
 #include "TinyGPS++.h"
 #include "shakemap-sensor-validation-1_inferencing.h"
+#include "WiFi.h"
+#include "HTTPClient.h"
+#include <cmath>
 
 #define ENABLE_DEBUG_LOGGING
 //#define DEBUG_LOG_GPS_LOCATION
+//#define DEBUG_LOG_AI_RESULT
 
 #define DATA_BUFFER_SIZE 166
 #define DATA_SAMPLING_FREQ 333
 #define GPS_SAMPLE_TIME_IN_MS 500
+
+// WiFi settings
+const char *wifiSsid = "MartinRouterKing";
+const char *wifiPass = "sicherespasswort";
+const char *supabaseUrl = "https://nmkuqyrotfsszqglglld.supabase.co";
+const char *supabaseApiKey = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im5ta3VxeXJvdGZzc3pxZ2xnbGxkIiwicm9sZSI6ImFub24iLCJpYXQiOjE2OTU0NjUxNTAsImV4cCI6MjAxMTA0MTE1MH0.I0MK5GFehsJ0e9riAcb_NtdiFhWFKSUmC05lxWW3npA";
+const char *tableName = "measurements_v2";
 
 TaskHandle_t Task1;
 hw_timer_t *acquireDataTimerConfig = NULL;
@@ -26,10 +37,17 @@ volatile boolean acquireDataFlag = false;           // Flag to indicate that dat
 volatile boolean acquireGpsSignalFlag = false;      // Flag to indicate that a GPS signal should be acquired
 
 MPU6050 accelgyro;
+TinyGPSPlus gps;
+HTTPClient httpClient;
+signal_t featuresSignal;
+ei_impulse_result_t aiResult = {0 };
 int16_t x_offset, y_offset, z_offset; // initial offsets for calibration
 
-TinyGPSPlus gps;
-signal_t featuresSignal;
+struct DataPoint {
+    const char* location;
+    const char* timestamp;
+    int value;
+};
 
 void IRAM_ATTR signalAcquireDataTimer() {
     acquireDataFlag = true;
@@ -146,22 +164,7 @@ int getFeaturesData(size_t offset, size_t length, float *out_ptr) {
     return 0;
 }
 
-void prepareAIMagic(const int16_t *buffer) {
-    for (int i = 0; i < DATA_BUFFER_SIZE * 3; i++) {
-        featuresBuffer[i] = buffer[i];
-    }
-}
-
-void doAIMagic() {
-    ei_impulse_result_t result = { 0 };
-
-    EI_IMPULSE_ERROR res = run_classifier(&featuresSignal, &result, false);
-    ei_printf("run_classifier returned: %d\n", res);
-
-    if (res != 0) {
-        return;
-    }
-
+void debugPrintAIResults(ei_impulse_result_t result) {
     ei_printf("Predictions ");
     ei_printf("(DSP: %d ms., Classification: %d ms., Anomaly: %d ms.)",
               result.timing.dsp, result.timing.classification, result.timing.anomaly);
@@ -191,6 +194,62 @@ void doAIMagic() {
 #endif
 }
 
+void prepareAIMagic(const int16_t *buffer) {
+    for (int i = 0; i < DATA_BUFFER_SIZE * 3; i++) {
+        featuresBuffer[i] = buffer[i];
+    }
+}
+
+void sendDataPoint() {
+    if (isnan(aiResult.classification[0].value)) {
+        debugPrintln("Aborting due to NaN value!");
+        return;
+    }
+
+    int maxClass = 0;
+    for (int i = 1; i < EI_CLASSIFIER_LABEL_COUNT; i++) {
+        if (aiResult.classification[i].value > aiResult.classification[maxClass].value) {
+            maxClass = i;
+        }
+    }
+
+    StringSumHelper locString = String("SRID=4326;POINT(") + gps.location.lng() + " " + gps.location.lat() + ")";
+    StringSumHelper timestampString = String("") + gps.date.year() + "-" + gps.date.month() + "-" + gps.date.day() + "T" + gps.time.hour() + ":" + gps.time.minute() + ":" + gps.time.second() + "Z";
+    DataPoint dataPoint = {
+            locString.c_str(),
+            timestampString.c_str(),
+            maxClass
+    };
+
+    httpClient.begin(String(supabaseUrl) + "/rest/v1/" + tableName);
+    httpClient.addHeader("apikey", supabaseApiKey);
+    httpClient.addHeader("Content-Type", "application/json");
+
+    String jsonData = String(R"([{"sensor_id": "ShakeMapSensor-PROD", "location": ")") + dataPoint.location +  R"(", "value": )" + dataPoint.value + "}]";
+    debugPrintln(jsonData.c_str());
+
+    int respCode = httpClient.POST(jsonData);
+    if (respCode >= 200 && respCode < 300) {
+        debugPrintln("Successfully uploaded data!");
+    } else {
+        debugPrint("HTTP Error: ");
+        debugPrintln(String(respCode).c_str());
+    }
+
+    httpClient.end();
+}
+
+void doAIMagic() {
+    EI_IMPULSE_ERROR res = run_classifier(&featuresSignal, &aiResult, false);
+    if (res != 0) {
+        return;
+    }
+
+#ifdef DEBUG_LOG_AI_RESULT
+    debugPrintAIResults(aiResult);
+#endif
+}
+
 void setup() {
 // join I2C bus (I2Cdev library doesn't do this automatically)
 #if I2CDEV_IMPLEMENTATION == I2CDEV_ARDUINO_WIRE
@@ -200,6 +259,15 @@ void setup() {
 #endif
 
     Serial.begin(250000);
+
+    // Connect to wifi
+    WiFi.begin(wifiSsid, wifiPass);
+    Serial.print("Connecting to WiFi...");
+    while (WiFi.status() != WL_CONNECTED) {
+        delay(500);
+        Serial.print(".");
+    }
+    Serial.println(" done!");
 
     // initialize device
     Serial.println("Initializing I2C devices...");
@@ -223,8 +291,6 @@ void setup() {
 
     // initial calibration to get gravity vector
     accelgyro.getAcceleration(&x_offset, &y_offset, &z_offset);
-
-
 
     // init GPS
     Serial1.begin(9600, SERIAL_8N1, 34, 12);
@@ -279,5 +345,6 @@ void loop() {
 
         prepareAIMagic(buffer1acquisition ? buffer2 : buffer1);
         doAIMagic();
+        sendDataPoint();
     }
 }
