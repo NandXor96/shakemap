@@ -110,7 +110,7 @@ function App() {
         )}
       </Map>
       <div className="button mapstyle" onClick={() => setMsHackMode((m) => !m)}>
-        MS-Hack
+        Hack-Mode: {msHackMode ? "on" : "off"}
       </div>
       {closed ? null : (
         <aside>

@@ -63,6 +63,7 @@ aside .title {
 
 .mapstyle {
   position: absolute;
+  bottom: 0px;
 }
 
 .regular aside {
