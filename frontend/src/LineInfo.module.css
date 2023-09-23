@@ -5,7 +5,7 @@
 .images {
   display: flex;
   flex-direction: row;
-  overflow-y: scroll;
+  overflow-y: auto;
 }
 
 .images img {

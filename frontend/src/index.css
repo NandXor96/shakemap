@@ -12,6 +12,14 @@ body {
   padding: 0;
 }
 
+body {
+  position: absolute;
+  top: 0px;
+  bottom: 0px;
+  left: 0px;
+  right: 0px;
+}
+
 * {
   box-sizing: border-box;
 }
@@ -39,7 +47,7 @@ aside {
   width: 300px;
   z-index: 10;
   padding: 10px;
-  overflow: scroll;
+  overflow: auto;
 }
 
 .button {
