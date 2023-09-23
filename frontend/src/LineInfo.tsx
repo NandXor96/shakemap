@@ -7,6 +7,8 @@ import styles from "./LineInfo.module.css";
 type Props = { line: MapGeoJSONFeature };
 export function LineInfo({ line }: Props) {
   const points = JSON.parse(line.properties.point_ids);
+  const images = JSON.parse(line.properties.image_urls);
+  const imageNodes = images.map((url: string) => <img key={url} src={url} />);
   return (
     <div className={styles.info}>
       <p>
@@ -17,6 +19,8 @@ export function LineInfo({ line }: Props) {
       <div>
         {points.length} {points.length < 2 ? "Meldung" : "Meldungen"}
       </div>
+      <br />
+      <div className={styles.images}>{imageNodes}</div>
     </div>
   );
 }

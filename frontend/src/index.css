@@ -39,6 +39,11 @@ aside {
   width: 300px;
   z-index: 10;
   padding: 10px;
+  overflow: scroll;
+}
+
+.button {
+  text-align: center;
 }
 
 aside .header {

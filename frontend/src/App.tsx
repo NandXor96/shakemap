@@ -49,7 +49,7 @@ function App() {
     const pointUrl =
       "https://nmkuqyrotfsszqglglld.supabase.co/rest/v1/points_v2";
     const lineUrl =
-      "https://nmkuqyrotfsszqglglld.supabase.co/rest/v1/segments_mapped_v2";
+      "https://nmkuqyrotfsszqglglld.supabase.co/rest/v1/segments_mapped_v3";
 
     const laneData = await getData(laneUrl);
     const pointData = await getData(pointUrl);

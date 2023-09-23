@@ -1,3 +1,25 @@
 .info {
   flex-grow: 1;
 }
+
+.images {
+  display: flex;
+  flex-direction: row;
+  overflow-y: scroll;
+}
+
+.images img {
+  width: 100%;
+  aspect-ratio: 1/1;
+  object-fit: cover;
+  border-radius: 10px;
+  margin-right: 10px;
+}
+
+.images img:last-child {
+  margin-right: 0px;
+}
+
+:global(.mshack) .images img {
+  border-radius: 0px;
+}
