@@ -7,6 +7,8 @@ import Map, {
 } from "react-map-gl/maplibre";
 import "maplibre-gl/dist/maplibre-gl.css";
 
+import Logo from "./assets/logo_mono.svg?react";
+
 import type { FeatureCollection } from "geojson";
 import { useEffect, useRef, useState } from "react";
 import { Points } from "./Points";
@@ -105,7 +107,10 @@ function App() {
         MS-Hack
       </div>
       <aside>
-        Shake Map
+        <div className="header">
+          <div className="title">Shake Map</div>
+          <Logo className="logo" />
+        </div>
         {highlightedLine && <LineInfo line={highlightedLine} />}
       </aside>
     </div>

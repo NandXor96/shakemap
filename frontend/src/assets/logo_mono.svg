@@ -1,0 +1,51 @@
+<svg width="210mm" height="210mm" version="1.1" viewBox="0 0 210 210" xmlns="http://www.w3.org/2000/svg">
+   <defs>
+      <clipPath id="clipPath12058">
+         <circle cx="104.22" cy="104.89" r="75.933"
+            style="fill-opacity:0;paint-order:markers fill stroke;stroke-width:3;stroke:#000" />
+      </clipPath>
+   </defs>
+   <g>
+      <circle cx="104.31" cy="105.02" r="74.92" style="fill:none;paint-order:markers fill stroke" />
+   </g>
+   <g>
+      <path
+         d="m-119.52 129.49 183.99-0.24243s5.7869 12.475 20.351 12.157 18.474-11.979 18.474-11.979l233.4 0.0652v58.785h-456.22z"
+         clip-path="url(#clipPath12058)"
+         style="paint-order:markers fill stroke;stroke-linecap:round;stroke-width:3.7662;" />
+   </g>
+   <g>
+      <g transform="rotate(-3.9809 94.292 126.55)">
+         <path d="m86.799 89.685-2.9673 29.905" style="fill:none;stroke-width:3;" />
+         <path d="m86.061 95.965 42.391-5.1821" style="fill:none;stroke-width:3;" />
+         <path d="m99.407 94.217 10.47 21.345 27.855-2.8746-14.308-33.421" style="fill:none;stroke-width:3;" />
+         <path d="m78.982 85.917s1.2939 5.452 13.831 3.6247" style="fill:none;stroke-width:3;" />
+         <path d="m122.45 78.455s7.3071 1.8453 10.517-4.5767" style="fill:none;stroke-width:3;" />
+         <circle cx="84.326" cy="120.1" r="15.51"
+            style="fill:none;paint-order:markers fill stroke;stroke-linecap:round;stroke-width:3;" />
+         <circle cx="138.74" cy="113.07" r="15.51"
+            style="fill:none;paint-order:markers fill stroke;stroke-linecap:round;stroke-width:3;" />
+      </g>
+      <path d="m68.334 95.21s-10.748-1.1921-13.771 10.434" style="fill:none;stroke-width:3;" />
+      <path d="m66.062 83.271s-16.078 0.51632-23.093 18.759" style="fill:none;stroke-width:3;" />
+   </g>
+   <g>
+      <path d="m107.46 101.13 8.63 1.2035-4.084-0.32712-4.8914 22.873-4.4451-0.71757 8.9729 1.6936"
+         style="fill:none;stroke-width:3;" />
+   </g>
+   <g style="display:none">
+      <circle cx="106.58" cy="50.235" r="7.5685"
+         style="paint-order:markers fill stroke;stroke-linecap:round;stroke-width:3;" />
+      <ellipse transform="rotate(30.663)" cx="116.52" cy="15.702" rx="6.3795" ry="16.762"
+         style="paint-order:markers fill stroke;stroke-linecap:round;stroke-width:3;" />
+      <ellipse transform="matrix(.016266 -.99987 .99992 .012711 0 0)" cx="-82.339" cy="98.26" rx="5.6209" ry="14.565"
+         style="paint-order:markers fill stroke;stroke-linecap:round;stroke-width:2.6695;" />
+      <ellipse transform="rotate(-2.5585)" cx="105.99" cy="100.14" rx="3.492" ry="13.237"
+         style="paint-order:markers fill stroke;stroke-linecap:round;stroke-width:3;" />
+      <ellipse transform="rotate(23.726)" cx="131.26" cy="20.238" rx="13.44" ry="2.3068"
+         style="paint-order:markers fill stroke;stroke-linecap:round;stroke-width:3;" />
+   </g>
+   <g>
+      <circle cx="104.32" cy="105" r="75.933" style="fill-opacity:0;paint-order:markers fill stroke;stroke-width:3;" />
+   </g>
+</svg>

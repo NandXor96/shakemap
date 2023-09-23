@@ -32,6 +32,26 @@ aside {
   padding: 10px;
 }
 
+aside .header {
+  padding: 0px 10px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+aside .logo {
+  width: 75px;
+  height: 75px;
+  fill: #000;
+  stroke: #000;
+  opacity: 0.5;
+}
+
+aside .title {
+  font-size: 30px;
+  opacity: 0.5;
+}
+
 .mapstyle {
   position: absolute;
 }
@@ -64,6 +84,10 @@ aside {
 .mshack aside {
   background-color: #fff;
   border-left: 2px solid black;
+}
+
+.mshack aside .title {
+  opacity: 1;
 }
 
 .mshack .button {
