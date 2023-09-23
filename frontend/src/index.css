@@ -2,6 +2,10 @@
 
 @import url("https://fonts.googleapis.com/css2?family=Open+Sans&display=swap");
 
+:root {
+  --yellow: #fcdd2e;
+}
+
 html,
 body {
   margin: 0;
@@ -66,7 +70,7 @@ aside {
   display: inline-block;
   padding: 10px;
   margin: 10px;
-  background-color: #fcdd2e;
+  background-color: var(--yellow);
   border: 2px solid #000;
   box-shadow: 5px 5px 0px black;
   border-radius: 0px;
