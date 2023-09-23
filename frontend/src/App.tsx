@@ -23,10 +23,11 @@ async function getData(url: string) {
       apikey: API_KEY,
     },
   });
-  const [{ json_build_object: data }]: {
+  const data: {
     json_build_object: FeatureCollection;
   }[] = await result.json();
-  return data;
+
+  return data[0]?.json_build_object;
 }
 
 function App() {
@@ -90,13 +91,15 @@ function App() {
         }
         onClick={handleClick}
       >
-        <Lanes data={laneData} />
-        {<Lines id="line-segment-layer" data={lineData} />}
-        <Points
-          id="data-point-layer"
-          highlightedLine={highlightedLine?.properties.line_id || "none"}
-          data={pointData}
-        />
+        {laneData && <Lanes data={laneData} />}
+        {lineData && <Lines id="line-segment-layer" data={lineData} />}
+        {pointData && (
+          <Points
+            id="data-point-layer"
+            highlightedLine={highlightedLine?.properties.line_id || "none"}
+            data={pointData}
+          />
+        )}
       </Map>
       <div className="button mapstyle" onClick={() => setMsHackMode((m) => !m)}>
         MS-Hack
