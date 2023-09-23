@@ -47,9 +47,11 @@ function App() {
 
   return (
     <div className={`app ${msHackMode ? "mshack" : "regular"}`}>
-      <div className="button" onClick={() => setMsHackMode((m) => !m)}>
-        MS-Hack
-      </div>
+      <nav>
+        <div className="button" onClick={() => setMsHackMode((m) => !m)}>
+          MS-Hack
+        </div>
+      </nav>
       <Map
         initialViewState={{
           longitude: 7.6261,

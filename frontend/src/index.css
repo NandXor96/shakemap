@@ -14,19 +14,29 @@ body {
   height: 100vh;
 }
 
+.regular nav {
+  position: absolute;
+  top: 0px;
+  left: 0px;
+  right: 0px;
+  backdrop-filter: blur(15px) saturate(120%);
+  z-index: 10;
+  border-bottom: 1px solid rgba(0, 0, 0, 0.1);
+}
+
 .regular .button {
   display: inline-block;
   padding: 5px 7px;
   margin: 10px;
   border: 0;
-  background-color: #eee;
+  background-color: rgba(0, 0, 0, 0.1);
   font-size: 12pt;
   color: #444;
   border-radius: 3px;
 }
 
 .regular .button:hover {
-  background-color: #ccc;
+  background-color: rgba(0, 0, 0, 0.05);
 }
 
 .app.mshack {
