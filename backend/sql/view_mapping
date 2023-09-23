@@ -1,0 +1,94 @@
+create view
+  public.mapping as
+with
+  points as (
+    select
+      generated_values.id,
+      generated_values.location,
+      generated_values.value
+    from
+      generated_values
+    where
+      generated_values.value is not null
+  ),
+  assoc_feature as (
+    select
+      points.id as point_id,
+      points.location as point_geom,
+      points.value,
+      osm.id as feature_id,
+      osm.geom as closest_feature_geometry
+    from
+      osm_segments osm,
+      points
+    where
+      st_dwithin (
+        osm.geom::geography,
+        points.location,
+        10::double precision
+      )
+  ),
+  mapped_locations as (
+    select
+      assoc_feature.feature_id,
+      assoc_feature.point_id,
+      assoc_feature.point_geom,
+      assoc_feature.value,
+      assoc_feature.closest_feature_geometry,
+      st_closestpoint (
+        assoc_feature.closest_feature_geometry,
+        assoc_feature.point_geom::geometry
+      ) as closest_point
+    from
+      assoc_feature
+  ),
+  closest_point_query as (
+    select
+      mapped_locations.feature_id,
+      mapped_locations.point_id,
+      mapped_locations.point_geom,
+      mapped_locations.value,
+      mapped_locations.closest_feature_geometry,
+      mapped_locations.closest_point,
+      st_distance (
+        mapped_locations.closest_point::geography,
+        mapped_locations.point_geom
+      ) as distance
+    from
+      mapped_locations
+  ),
+  closest_point_query_2 as (
+    select
+      closest_point_query.point_id,
+      min(closest_point_query.distance) as mindist
+    from
+      closest_point_query
+    group by
+      closest_point_query.point_id
+  ),
+  closest_point_query_3 as (
+    select
+      closest_point_query.feature_id,
+      closest_point_query.point_id,
+      closest_point_query.point_geom,
+      closest_point_query.value,
+      closest_point_query.closest_feature_geometry,
+      closest_point_query.closest_point,
+      closest_point_query.distance
+    from
+      closest_point_query,
+      closest_point_query_2
+    where
+      closest_point_query_2.mindist = closest_point_query.distance
+      and closest_point_query_2.point_id = closest_point_query.point_id
+  )
+select
+  closest_point_query_3.feature_id,
+  closest_point_query_3.point_id,
+  closest_point_query_3.point_geom,
+  closest_point_query_3.value,
+  closest_point_query_3.closest_feature_geometry,
+  closest_point_query_3.closest_point,
+  closest_point_query_3.distance
+from
+  closest_point_query_3;
