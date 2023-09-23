@@ -115,7 +115,7 @@ function App() {
       {closed ? null : (
         <aside>
           <div className="header">
-            <div className="title">Shake Map</div>
+            <div className="title">ShakeMap</div>
             {msHackMode ? (
               <LogoColor className="logo" />
             ) : (
