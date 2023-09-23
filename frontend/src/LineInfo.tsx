@@ -1,5 +1,6 @@
 import { MapGeoJSONFeature } from "react-map-gl/maplibre";
 import { ScoreBar } from "./ScoreBar";
+import { ScoreText } from "./ScoreText";
 
 type Props = { line: MapGeoJSONFeature };
 export function LineInfo({ line }: Props) {
@@ -7,7 +8,7 @@ export function LineInfo({ line }: Props) {
   return (
     <div>
       <p>
-        Zustand
+        Zustand: <ScoreText value={line.properties.value} />
         <ScoreBar value={line.properties.value} />
       </p>
 

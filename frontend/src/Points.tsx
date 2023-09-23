@@ -8,8 +8,6 @@ import "maplibre-gl/dist/maplibre-gl.css";
 
 import type { FeatureCollection } from "geojson";
 
-import { THRESHOLD } from "./const";
-
 const circleLayer: CircleLayer = {
   id: "point",
   source: "point",
@@ -21,22 +19,10 @@ const circleLayer: CircleLayer = {
       "interpolate",
       ["linear"],
       ["get", "value"],
-      THRESHOLD,
-      "orange",
-      100,
-      "red",
-    ],
-
-    "circle-opacity": [
-      "interpolate",
-      ["linear"],
-      ["get", "value"],
-      0,
-      0,
-      THRESHOLD,
-      0,
-      THRESHOLD + 0.1,
       1,
+      "orange",
+      5,
+      "red",
     ],
   },
 };

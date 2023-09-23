@@ -3,8 +3,6 @@ import "maplibre-gl/dist/maplibre-gl.css";
 
 import type { FeatureCollection } from "geojson";
 
-import { THRESHOLD } from "./const";
-
 const lineLayer: LineLayer = {
   id: "line",
   source: "line",
@@ -14,22 +12,10 @@ const lineLayer: LineLayer = {
       "interpolate",
       ["linear"],
       ["get", "value"],
-      THRESHOLD,
-      "orange",
-      100,
-      "red",
-    ],
-
-    "line-opacity": [
-      "interpolate",
-      ["linear"],
-      ["get", "value"],
-      0,
-      0,
-      THRESHOLD,
-      0,
-      THRESHOLD + 0.1,
       1,
+      "orange",
+      5,
+      "red",
     ],
 
     "line-width": ["interpolate", ["linear"], ["zoom"], 12, 1, 20, 5],
