@@ -120,8 +120,9 @@ export function Points({
         {...circleLayer}
         filter={["in", "line_id", highlightedLine]}
         id={id}
+        beforeId="label_water"
       />
-      {withHeatmap ? <Layer {...heatmapLayer} /> : null}
+      {withHeatmap ? <Layer {...heatmapLayer} beforeId="label_water" /> : null}
     </Source>
   );
 }

@@ -1,4 +1,5 @@
 import Map, {
+  MapGeoJSONFeature,
   MapLayerMouseEvent,
   MapRef,
   Point,
@@ -10,6 +11,8 @@ import type { FeatureCollection } from "geojson";
 import { useEffect, useRef, useState } from "react";
 import { Points } from "./Points";
 import { Lines } from "./Lines";
+import { LineInfo } from "./LineInfo";
+import { Lanes } from "./Lanes";
 
 async function getData(url: string) {
   const API_KEY =
@@ -29,22 +32,26 @@ async function getData(url: string) {
 function App() {
   const mapRef = useRef<MapRef>(null);
   const [msHackMode, setMsHackMode] = useState<boolean>(false);
+  const [laneData, setLaneData] = useState<FeatureCollection>();
   const [pointData, setPointData] = useState<FeatureCollection>();
   const [lineData, setLineData] = useState<FeatureCollection>();
 
-  const [highlightedLine, setHighlightedLine] = useState("none");
+  const [highlightedLine, setHighlightedLine] = useState<MapGeoJSONFeature>();
 
   async function updateData() {
+    const laneUrl = "https://nmkuqyrotfsszqglglld.supabase.co/rest/v1/osm_geom";
     const pointUrl =
       "https://nmkuqyrotfsszqglglld.supabase.co/rest/v1/points_v2";
     const lineUrl =
       "https://nmkuqyrotfsszqglglld.supabase.co/rest/v1/segments_mapped_v2";
 
+    const laneData = await getData(laneUrl);
     const pointData = await getData(pointUrl);
     const lineData = await getData(lineUrl);
 
     console.log(lineData);
 
+    setLaneData(laneData);
     setPointData(pointData);
     setLineData(lineData);
   }
@@ -63,18 +70,17 @@ function App() {
       layers: ["line-segment-layer"],
     });
 
-    const lineId = selectedLines[0]?.properties.line_id;
-
-    setHighlightedLine(lineId || "none");
+    setHighlightedLine(selectedLines[0]);
   }
 
   return (
     <div className={`app ${msHackMode ? "mshack" : "regular"}`}>
-      <nav>
+      <aside>
         <div className="button" onClick={() => setMsHackMode((m) => !m)}>
           MS-Hack
         </div>
-      </nav>
+        {highlightedLine && <LineInfo line={highlightedLine} />}
+      </aside>
       <Map
         ref={mapRef}
         initialViewState={{
@@ -92,9 +98,10 @@ function App() {
       >
         <Points
           id="data-point-layer"
-          highlightedLine={highlightedLine || "none"}
+          highlightedLine={highlightedLine?.properties.line_id || "none"}
           data={pointData}
         />
+        <Lanes data={laneData} />
         {<Lines id="line-segment-layer" data={lineData} />}
       </Map>
     </div>

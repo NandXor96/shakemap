@@ -14,14 +14,18 @@ body {
   height: 100vh;
 }
 
-.regular nav {
+aside {
   position: absolute;
   top: 0px;
-  left: 0px;
+  bottom: 0px;
   right: 0px;
-  backdrop-filter: blur(15px) saturate(120%);
+  width: 300px;
   z-index: 10;
-  border-bottom: 1px solid rgba(0, 0, 0, 0.1);
+}
+
+.regular aside {
+  backdrop-filter: blur(15px) saturate(120%);
+  border-left: 1px solid rgba(0, 0, 0, 0.1);
 }
 
 .regular .button {
@@ -41,6 +45,11 @@ body {
 
 .app.mshack {
   font-family: "Share Tech Mono", monospace;
+}
+
+.mshack aside {
+  background-color: #fff;
+  border-left: 2px solid black;
 }
 
 .mshack .button {
