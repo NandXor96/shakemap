@@ -13,12 +13,11 @@ import { Lines } from "./Lines";
 
 async function getData(url: string) {
   const API_KEY =
-    "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im5ta3VxeXJvdGZzc3pxZ2xnbGxkIiwicm9sZSI6ImFub24iLCJpYXQiOjE2OTUzNzkyNjIsImV4cCI6MjAxMDk1NTI2Mn0.elRWzQwl_lppri_s87Ho2sfd0HLodYKzCAQVpNXNgwA";
+    "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im5ta3VxeXJvdGZzc3pxZ2xnbGxkIiwicm9sZSI6ImFub24iLCJpYXQiOjE2OTU0NjUxNTAsImV4cCI6MjAxMTA0MTE1MH0.I0MK5GFehsJ0e9riAcb_NtdiFhWFKSUmC05lxWW3npA";
 
   const result = await window.fetch(url, {
     headers: {
       apikey: API_KEY,
-      Authorization: `Bearer ${API_KEY}`,
     },
   });
   const [{ json_build_object: data }]: {
