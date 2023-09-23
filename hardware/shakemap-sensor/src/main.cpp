@@ -26,6 +26,8 @@ volatile boolean acquireDataFlag = false;           // Flag to indicate that dat
 volatile boolean acquireGpsSignalFlag = false;      // Flag to indicate that a GPS signal should be acquired
 
 MPU6050 accelgyro;
+int16_t x_offset, y_offset, z_offset; // initial offsets for calibration
+
 TinyGPSPlus gps;
 signal_t featuresSignal;
 
@@ -42,6 +44,12 @@ void acquireData() {
         int16_t *buffer = buffer1acquisition ? buffer1 : buffer2;
         buffer += (3 * writeIndex);
         accelgyro.getAcceleration(buffer, buffer + 1, buffer + 2);
+
+        // substract gravity vector (from initial calibration)
+        buffer[0] -= x_offset;
+        buffer[1] -= y_offset;
+        buffer[2] -= z_offset;
+
         writeIndex++;
     }
 }
@@ -200,6 +208,23 @@ void setup() {
     // verify connection
     Serial.println("Testing device connections...");
     Serial.println(accelgyro.testConnection() ? "MPU6050 connection successful" : "MPU6050 connection failed");
+    
+    // configure MPU6050 IMU
+    accelgyro.setRate(1);  // 1khz / (1 + 1) = 500 Hz
+
+    accelgyro.setXGyroOffset(220);
+    accelgyro.setYGyroOffset(76);
+    accelgyro.setZGyroOffset(-85);
+    accelgyro.setZAccelOffset(1788);  // 1688 factory default for my test chip
+
+    accelgyro.CalibrateAccel(6);
+    accelgyro.CalibrateGyro(6);
+    accelgyro.PrintActiveOffsets();
+
+    // initial calibration to get gravity vector
+    accelgyro.getAcceleration(&x_offset, &y_offset, &z_offset);
+
+
 
     // init GPS
     Serial1.begin(9600, SERIAL_8N1, 34, 12);
