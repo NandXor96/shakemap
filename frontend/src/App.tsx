@@ -75,12 +75,6 @@ function App() {
 
   return (
     <div className={`app ${msHackMode ? "mshack" : "regular"}`}>
-      <aside>
-        <div className="button" onClick={() => setMsHackMode((m) => !m)}>
-          MS-Hack
-        </div>
-        {highlightedLine && <LineInfo line={highlightedLine} />}
-      </aside>
       <Map
         ref={mapRef}
         initialViewState={{
@@ -88,7 +82,7 @@ function App() {
           latitude: 51.9607,
           zoom: 14,
         }}
-        style={{ width: "100%", height: "100%" }}
+        style={{ position: "absolute", width: "100%", height: "100%" }}
         mapStyle={
           msHackMode
             ? "https://maps.moritz.tk/style-ms-hack.json"
@@ -104,6 +98,13 @@ function App() {
         <Lanes data={laneData} />
         {<Lines id="line-segment-layer" data={lineData} />}
       </Map>
+      <div className="button mapstyle" onClick={() => setMsHackMode((m) => !m)}>
+        MS-Hack
+      </div>
+      <aside>
+        Shake Map
+        {highlightedLine && <LineInfo line={highlightedLine} />}
+      </aside>
     </div>
   );
 }

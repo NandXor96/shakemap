@@ -8,6 +8,10 @@ body {
   padding: 0;
 }
 
+* {
+  box-sizing: border-box;
+}
+
 .app {
   font-family: "Open Sans";
   width: 100vw;
@@ -21,6 +25,11 @@ aside {
   right: 0px;
   width: 300px;
   z-index: 10;
+  padding: 10px;
+}
+
+.mapstyle {
+  position: absolute;
 }
 
 .regular aside {
@@ -37,6 +46,7 @@ aside {
   font-size: 12pt;
   color: #444;
   border-radius: 3px;
+  backdrop-filter: blur(15px) saturate(120%);
 }
 
 .regular .button:hover {
