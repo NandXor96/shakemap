@@ -4,7 +4,7 @@ export function ScoreBar({ value }: { value: number }) {
     <div className={styles.main}>
       <div className={styles.container}>
         <div className={styles.bar} style={{ width: `${(value / 5) * 100}%` }}>
-          {value}
+          {Math.round(value * 10) / 10}
         </div>
       </div>
     </div>
