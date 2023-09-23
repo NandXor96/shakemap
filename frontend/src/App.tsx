@@ -90,13 +90,13 @@ function App() {
         }
         onClick={handleClick}
       >
+        <Lanes data={laneData} />
+        {<Lines id="line-segment-layer" data={lineData} />}
         <Points
           id="data-point-layer"
           highlightedLine={highlightedLine?.properties.line_id || "none"}
           data={pointData}
         />
-        <Lanes data={laneData} />
-        {<Lines id="line-segment-layer" data={lineData} />}
       </Map>
       <div className="button mapstyle" onClick={() => setMsHackMode((m) => !m)}>
         MS-Hack
