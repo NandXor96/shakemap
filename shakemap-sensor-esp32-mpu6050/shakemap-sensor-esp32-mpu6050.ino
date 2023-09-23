@@ -106,7 +106,7 @@ VectorFloat gravity;  // [x, y, z]            gravity vector
 
 
 void setup(void) {
-  delay(100);
+  delay(10000);
 
   pinMode(LED_BUILTIN, OUTPUT);
 
@@ -121,7 +121,7 @@ void setup(void) {
   Serial.begin(BAUD_RATE, SER_PARAMS, RX_PIN, TX_PIN);
   Serial.println(send_timeout);
   WiFi.mode(WIFI_STA);
-32 MAC Address: 24:0A:C4:F7
+
 #ifdef DEBUG
   Serial.print("ESP32 MAC Address: ");
   Serial.println(WiFi.macAddress());
@@ -164,7 +164,7 @@ void setup(void) {
 
   // verify connection
   Serial.println(F("Testing device connections..."));
-  Serial.println(mpu.testConnectiesp_now_add_peeron() ? F("MPU6050 connection successful") : F("MPU6050 connection failed"));
+  Serial.println(mpu.testConnection() ? F("MPU6050 connection successful") : F("MPU6050 connection failed"));
 
 
   // load and configure the DMP
