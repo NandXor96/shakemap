@@ -16,6 +16,11 @@ body {
   box-sizing: border-box;
 }
 
+h1 {
+  font-size: 16pt;
+  font-weight: inherit;
+}
+
 .app {
   font-family: "Open Sans";
   width: 100vw;
@@ -23,6 +28,10 @@ body {
 }
 
 aside {
+  display: flex;
+  align-items: stretch;
+  justify-content: stretch;
+  flex-direction: column;
   position: absolute;
   top: 0px;
   bottom: 0px;

@@ -40,6 +40,7 @@ function App() {
   const [laneData, setLaneData] = useState<FeatureCollection>();
   const [pointData, setPointData] = useState<FeatureCollection>();
   const [lineData, setLineData] = useState<FeatureCollection>();
+  const [closed, setClosed] = useState(false);
 
   const [highlightedLine, setHighlightedLine] = useState<MapGeoJSONFeature>();
 
@@ -76,6 +77,9 @@ function App() {
     });
 
     setHighlightedLine(selectedLines[0]);
+    if (selectedLines[0]) {
+      setClosed(false);
+    }
   }
 
   return (
@@ -108,17 +112,22 @@ function App() {
       <div className="button mapstyle" onClick={() => setMsHackMode((m) => !m)}>
         MS-Hack
       </div>
-      <aside>
-        <div className="header">
-          <div className="title">Shake Map</div>
-          {msHackMode ? (
-            <LogoColor className="logo" />
-          ) : (
-            <LogoMono className="logo" />
-          )}
-        </div>
-        {highlightedLine ? <LineInfo line={highlightedLine} /> : <Intro />}
-      </aside>
+      {closed ? null : (
+        <aside>
+          <div className="header">
+            <div className="title">Shake Map</div>
+            {msHackMode ? (
+              <LogoColor className="logo" />
+            ) : (
+              <LogoMono className="logo" />
+            )}
+          </div>
+          {highlightedLine ? <LineInfo line={highlightedLine} /> : <Intro />}
+          <div className="button" onClick={() => setClosed(true)}>
+            Schließen
+          </div>
+        </aside>
+      )}
     </div>
   );
 }
