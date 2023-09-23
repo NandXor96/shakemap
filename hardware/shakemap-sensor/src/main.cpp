@@ -7,7 +7,7 @@
 #include "shakemap-sensor-validation-1_inferencing.h"
 
 #define ENABLE_DEBUG_LOGGING
-#define DEBUG_LOG_GPS_LOCATION
+//#define DEBUG_LOG_GPS_LOCATION
 
 #define DATA_BUFFER_SIZE 166
 #define DATA_SAMPLING_FREQ 333
@@ -27,6 +27,7 @@ volatile boolean acquireGpsSignalFlag = false;      // Flag to indicate that a G
 
 MPU6050 accelgyro;
 TinyGPSPlus gps;
+signal_t featuresSignal;
 
 void IRAM_ATTR signalAcquireDataTimer() {
     acquireDataFlag = true;
@@ -137,12 +138,49 @@ int getFeaturesData(size_t offset, size_t length, float *out_ptr) {
     return 0;
 }
 
-void doAIMagic(int16_t *buffer) {
+void prepareAIMagic(const int16_t *buffer) {
+    for (int i = 0; i < DATA_BUFFER_SIZE * 3; i++) {
+        featuresBuffer[i] = buffer[i];
+    }
+}
+
+void doAIMagic() {
     ei_impulse_result_t result = { 0 };
 
-    signal_t features_signal;
-    features_signal.total_length = DATA_BUFFER_SIZE * 3;
-    features_signal.get_data = &getFeaturesData;
+    EI_IMPULSE_ERROR res = run_classifier(&featuresSignal, &result, false);
+    ei_printf("run_classifier returned: %d\n", res);
+
+    if (res != 0) {
+        return;
+    }
+
+    ei_printf("Predictions ");
+    ei_printf("(DSP: %d ms., Classification: %d ms., Anomaly: %d ms.)",
+              result.timing.dsp, result.timing.classification, result.timing.anomaly);
+    ei_printf(": \n");
+    ei_printf("[");
+    for (size_t ix = 0; ix < EI_CLASSIFIER_LABEL_COUNT; ix++) {
+        ei_printf("%.5f", result.classification[ix].value);
+#if EI_CLASSIFIER_HAS_ANOMALY == 1
+        ei_printf(", ");
+#else
+        if (ix != EI_CLASSIFIER_LABEL_COUNT - 1) {
+            ei_printf(", ");
+        }
+#endif
+    }
+#if EI_CLASSIFIER_HAS_ANOMALY == 1
+    ei_printf("%.3f", result.anomaly);
+#endif
+    ei_printf("]\n");
+
+    // human-readable predictions
+    for (size_t ix = 0; ix < EI_CLASSIFIER_LABEL_COUNT; ix++) {
+        ei_printf("    %s: %.5f\n", result.classification[ix].label, result.classification[ix].value);
+    }
+#if EI_CLASSIFIER_HAS_ANOMALY == 1
+    ei_printf("    anomaly score: %.3f\n", result.anomaly);
+#endif
 }
 
 void setup() {
@@ -171,6 +209,10 @@ void setup() {
         Serial.println("Data buffer size wrong!");
         delay(500);
     }
+
+    // Prepare AI analysis
+    featuresSignal.total_length = DATA_BUFFER_SIZE * 3;
+    featuresSignal.get_data = &getFeaturesData;
 
     // acquire data timer
     acquireDataTimerConfig = timerBegin(
@@ -210,6 +252,7 @@ void loop() {
         buffer1acquisition = !buffer1acquisition;
         writeIndex = 0;
 
-        doAIMagic(buffer1acquisition ? buffer2 : buffer1);
+        prepareAIMagic(buffer1acquisition ? buffer2 : buffer1);
+        doAIMagic();
     }
 }
