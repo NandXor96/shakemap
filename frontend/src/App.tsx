@@ -1,8 +1,13 @@
-import Map from "react-map-gl/maplibre";
+import Map, {
+  MapLayerMouseEvent,
+  MapRef,
+  Point,
+  PointLike,
+} from "react-map-gl/maplibre";
 import "maplibre-gl/dist/maplibre-gl.css";
 
 import type { FeatureCollection } from "geojson";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Points } from "./Points";
 import { Lines } from "./Lines";
 
@@ -23,15 +28,18 @@ async function getData(url: string) {
 }
 
 function App() {
+  const mapRef = useRef<MapRef>(null);
   const [msHackMode, setMsHackMode] = useState<boolean>(false);
   const [pointData, setPointData] = useState<FeatureCollection>();
   const [lineData, setLineData] = useState<FeatureCollection>();
 
+  const [highlightedLine, setHighlightedLine] = useState("none");
+
   async function updateData() {
     const pointUrl =
-      "https://nmkuqyrotfsszqglglld.supabase.co/rest/v1/points_mapped?";
+      "https://nmkuqyrotfsszqglglld.supabase.co/rest/v1/points_v2";
     const lineUrl =
-      "https://nmkuqyrotfsszqglglld.supabase.co/rest/v1/segments_mapped?";
+      "https://nmkuqyrotfsszqglglld.supabase.co/rest/v1/segments_mapped_v2";
 
     const pointData = await getData(pointUrl);
     const lineData = await getData(lineUrl);
@@ -45,6 +53,22 @@ function App() {
     updateData();
   }, []);
 
+  function handleClick(event: MapLayerMouseEvent) {
+    console.log(event);
+    console.log(event.features);
+
+    const map = mapRef.current;
+    if (!map) return;
+
+    const selectedLines = map.queryRenderedFeatures(getBbox(event.point, 10), {
+      layers: ["line-segment-layer"],
+    });
+
+    const lineId = selectedLines[0]?.properties.line_id;
+
+    setHighlightedLine(lineId || "none");
+  }
+
   return (
     <div className={`app ${msHackMode ? "mshack" : "regular"}`}>
       <nav>
@@ -53,6 +77,7 @@ function App() {
         </div>
       </nav>
       <Map
+        ref={mapRef}
         initialViewState={{
           longitude: 7.6261,
           latitude: 51.9607,
@@ -64,12 +89,24 @@ function App() {
             ? "https://maps.moritz.tk/style-ms-hack.json"
             : "https://maps.moritz.tk/style.json"
         }
+        onClick={handleClick}
       >
-        <Points data={pointData} />
-        <Lines data={lineData} />
+        <Points
+          id="data-point-layer"
+          highlightedLine={highlightedLine || "none"}
+          data={pointData}
+        />
+        {<Lines id="line-segment-layer" data={lineData} />}
       </Map>
     </div>
   );
 }
 
 export default App;
+
+function getBbox(point: Point, offset: number) {
+  return [
+    [point.x - offset, point.y - offset],
+    [point.x + offset, point.y + offset],
+  ] as [PointLike, PointLike];
+}

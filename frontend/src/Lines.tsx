@@ -38,14 +38,16 @@ const lineLayer: LineLayer = {
 };
 
 export function Lines({
+  id,
   data,
 }: {
+  id?: string;
   data?: FeatureCollection;
   withHeatmap?: boolean;
 }) {
   return (
     <Source id="line" type="geojson" data={data}>
-      <Layer {...lineLayer} />
+      <Layer {...lineLayer} id={id} />
     </Source>
   );
 }

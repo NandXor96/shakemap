@@ -104,15 +104,23 @@ const heatmapLayer: HeatmapLayer = {
 };
 
 export function Points({
+  id,
   data,
+  highlightedLine,
   withHeatmap,
 }: {
+  id?: string;
   data?: FeatureCollection;
+  highlightedLine: string;
   withHeatmap?: boolean;
 }) {
   return (
     <Source id="point" type="geojson" data={data}>
-      <Layer {...circleLayer} />
+      <Layer
+        {...circleLayer}
+        filter={["in", "line_id", highlightedLine]}
+        id={id}
+      />
       {withHeatmap ? <Layer {...heatmapLayer} /> : null}
     </Source>
   );
