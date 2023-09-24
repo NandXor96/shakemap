@@ -20,7 +20,7 @@ import { Intro } from "./Intro";
 
 async function getData(url: string) {
   const API_KEY =
-    "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im5ta3VxeXJvdGZzc3pxZ2xnbGxkIiwicm9sZSI6ImFub24iLCJpYXQiOjE2OTU0NjUxNTAsImV4cCI6MjAxMTA0MTE1MH0.I0MK5GFehsJ0e9riAcb_NtdiFhWFKSUmC05lxWW3npA";
+    "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im5ta3VxeXJvdGZzc3pxZ2xnbGxkIiwicm9sZSI6ImFub24iLCJpYXQiOjE2OTU1ODA1NDYsImV4cCI6MjAxMTE1NjU0Nn0.K-gcRvusToMcAO8N5xCuzoV9PcW9xYkOJjTQ1cVKP7M";
 
   const result = await window.fetch(url, {
     headers: {
