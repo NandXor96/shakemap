@@ -5,40 +5,49 @@
 #include "arduinoFFT.h"
 #include "TinyGPS++.h"
 #include "shakemap-sensor-validation-1_inferencing.h"
+#include "WiFi.h"
+#include "HTTPClient.h"
+#include <cmath>
 
-#define DATA_BUFFER_SIZE 1024
+#define ENABLE_DEBUG_LOGGING
+//#define DEBUG_LOG_GPS_LOCATION
+//#define DEBUG_LOG_AI_RESULT
+
+#define DATA_BUFFER_SIZE 166
+#define DATA_SAMPLING_FREQ 333
 #define GPS_SAMPLE_TIME_IN_MS 500
+
+// WiFi settings
+const char *wifiSsid = "MartinRouterKing";
+const char *wifiPass = "sicherespasswort";
+const char *supabaseUrl = "https://nmkuqyrotfsszqglglld.supabase.co";
+const char *supabaseApiKey = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im5ta3VxeXJvdGZzc3pxZ2xnbGxkIiwicm9sZSI6ImFub24iLCJpYXQiOjE2OTU0NjUxNTAsImV4cCI6MjAxMTA0MTE1MH0.I0MK5GFehsJ0e9riAcb_NtdiFhWFKSUmC05lxWW3npA";
+const char *tableName = "measurements_v2";
 
 TaskHandle_t Task1;
 hw_timer_t *acquireDataTimerConfig = NULL;
 hw_timer_t *acquireGpsSignalTimerConfig = NULL;
 
-int16_t buffer1[DATA_BUFFER_SIZE * 3];            // Assuming 3 values per entry (x, y, z)
-int16_t buffer2[DATA_BUFFER_SIZE * 3];            // Assuming 3 values per entry (x, y, z)
-volatile boolean buffer1acquisition = true;  // indicates the current buffer being filled by sensor data
-volatile int16_t writeIndex = 0;             // Current index of the data acquisition
-volatile boolean acquireDataFlag = false;    // Flag to indicate that data should be acquired
-volatile boolean acquireGpsSignalFlag = false;   // Flag to indicate that a GPS signal should be acquired
+int16_t buffer1[DATA_BUFFER_SIZE * 3];              // Assuming 3 values per entry (x, y, z)
+int16_t buffer2[DATA_BUFFER_SIZE * 3];              // Assuming 3 values per entry (x, y, z)
+float featuresBuffer[DATA_BUFFER_SIZE * 3];         // Feature data for AI analysis
+volatile boolean buffer1acquisition = true;         // indicates the current buffer being filled by sensor data
+volatile int16_t writeIndex = 0;                    // Current index of the data acquisition
+volatile boolean acquireDataFlag = false;           // Flag to indicate that data should be acquired
+volatile boolean acquireGpsSignalFlag = false;      // Flag to indicate that a GPS signal should be acquired
 
 MPU6050 accelgyro;
 TinyGPSPlus gps;
+HTTPClient httpClient;
+signal_t featuresSignal;
+ei_impulse_result_t aiResult = {0 };
+int16_t x_offset, y_offset, z_offset; // initial offsets for calibration
 
-// FFT
-arduinoFFT FFT = arduinoFFT();         /* Create FFT object */
-const uint16_t samples = DATA_BUFFER_SIZE;  // This value MUST ALWAYS be a power of 2
-const double samplingFrequency = 512;  // Hz
-
-/*
-These are the input and output vectors
-Input vectors receive computed results from FFT
-*/
-double vReal[samples];
-double vImag[samples];
-
-#define SCL_INDEX 0x00
-#define SCL_TIME 0x01
-#define SCL_FREQUENCY 0x02
-#define SCL_PLOT 0x03
+struct DataPoint {
+    const char* location;
+    const char* timestamp;
+    int value;
+};
 
 void IRAM_ATTR signalAcquireDataTimer() {
     acquireDataFlag = true;
@@ -50,20 +59,32 @@ void IRAM_ATTR signalAcquireGpsSignalTimer() {
 
 void acquireData() {
     if (writeIndex < DATA_BUFFER_SIZE) {
-        // get pointer to the current address in the correct buffer
         int16_t *buffer = buffer1acquisition ? buffer1 : buffer2;
-        // get pointer to the current address in the other buffer
         buffer += (3 * writeIndex);
-        int16_t ax, ay, az;
         accelgyro.getAcceleration(buffer, buffer + 1, buffer + 2);
+
+        // substract gravity vector (from initial calibration)
+        buffer[0] -= x_offset;
+        buffer[1] -= y_offset;
+        buffer[2] -= z_offset;
+
         writeIndex++;
     }
 }
 
-void acquireGpsSignal() {
-    Serial.println("Acquiring GPS signal...");
-    while (Serial1.available())
-        gps.encode(Serial1.read());
+void debugPrint(const char *msg) {
+#ifdef ENABLE_DEBUG_LOGGING
+    Serial.print(msg);
+#endif
+}
+
+void debugPrintln(const char *msg) {
+#ifdef ENABLE_DEBUG_LOGGING
+    Serial.println(msg);
+#endif
+}
+
+void logGpsData() {
     Serial.println("Acquired GPS signal:");
     Serial.print("Sats:");
     Serial.println(gps.satellites.value()); // Number of satellites in use (u32)
@@ -113,6 +134,17 @@ void acquireGpsSignal() {
     }
 }
 
+void acquireGpsSignal() {
+    debugPrintln("Acquiring GPS signal...");
+    while (Serial1.available())
+        gps.encode(Serial1.read());
+    debugPrintln("GPS signal acquired!");
+
+#ifdef DEBUG_LOG_GPS_LOCATION
+    logGpsData();
+#endif
+}
+
 void Task1code(void *parameter) {
     while (true) {
         if (acquireDataFlag) {
@@ -123,65 +155,99 @@ void Task1code(void *parameter) {
         if (acquireGpsSignalFlag) {
             acquireGpsSignal();
             acquireGpsSignalFlag = false;
-            Serial.print("Frame size: ");
-            Serial.println(EI_CLASSIFIER_DSP_INPUT_FRAME_SIZE);
-            Serial.print("Label count: ");
-            Serial.println(EI_CLASSIFIER_LABEL_COUNT);
         }
     }
 }
 
-void PrintVector(double *vData, uint16_t bufferSize, uint8_t scaleType) {
-    for (uint16_t i = 0; i < bufferSize; i++) {
-        double abscissa;
-        /* Print abscissa value */
-        switch (scaleType) {
-            case SCL_INDEX:
-                abscissa = (i * 1.0);
-                break;
-            case SCL_TIME:
-                abscissa = ((i * 1.0) / samplingFrequency);
-                break;
-            case SCL_FREQUENCY:
-                abscissa = ((i * 1.0 * samplingFrequency) / samples);
-                break;
-        }
-        Serial.print(abscissa, 6);
-        if (scaleType == SCL_FREQUENCY)
-            Serial.print("Hz");
-        Serial.print(" ");
-        Serial.println(vData[i], 4);
-    }
-    Serial.println();
+int getFeaturesData(size_t offset, size_t length, float *out_ptr) {
+    memcpy(out_ptr, featuresBuffer + offset, length * sizeof(float));
+    return 0;
 }
 
-void fft(int16_t *buffer) {
-    for (uint16_t i = 0; i < samples; i++) {
-        // double norm = sqrt(pow(buffer[3 * samples], 2) + pow(buffer[3 * samples + 1], 2) + pow(buffer[3 * samples + 2], 2));
+void debugPrintAIResults(ei_impulse_result_t result) {
+    ei_printf("Predictions ");
+    ei_printf("(DSP: %d ms., Classification: %d ms., Anomaly: %d ms.)",
+              result.timing.dsp, result.timing.classification, result.timing.anomaly);
+    ei_printf(": \n");
+    ei_printf("[");
+    for (size_t ix = 0; ix < EI_CLASSIFIER_LABEL_COUNT; ix++) {
+        ei_printf("%.5f", result.classification[ix].value);
+#if EI_CLASSIFIER_HAS_ANOMALY == 1
+        ei_printf(", ");
+#else
+        if (ix != EI_CLASSIFIER_LABEL_COUNT - 1) {
+            ei_printf(", ");
+        }
+#endif
+    }
+#if EI_CLASSIFIER_HAS_ANOMALY == 1
+    ei_printf("%.3f", result.anomaly);
+#endif
+    ei_printf("]\n");
 
-        double value = 0;
-        value += buffer[3 * i + 2];
-        vReal[i] = value;
-        vImag[i] = 0.0;  // Imaginary part must be zeroed in case of looping to avoid wrong calculations and overflows
+    // human-readable predictions
+    for (size_t ix = 0; ix < EI_CLASSIFIER_LABEL_COUNT; ix++) {
+        ei_printf("    %s: %.5f\n", result.classification[ix].label, result.classification[ix].value);
+    }
+#if EI_CLASSIFIER_HAS_ANOMALY == 1
+    ei_printf("    anomaly score: %.3f\n", result.anomaly);
+#endif
+}
+
+void prepareAIMagic(const int16_t *buffer) {
+    for (int i = 0; i < DATA_BUFFER_SIZE * 3; i++) {
+        featuresBuffer[i] = buffer[i];
+    }
+}
+
+void sendDataPoint() {
+    if (isnan(aiResult.classification[0].value)) {
+        debugPrintln("Aborting due to NaN value!");
+        return;
     }
 
-    FFT = arduinoFFT(vReal, vImag, samples, samplingFrequency); /* Create FFT object */
-    /* Print the results of the simulated sampling according to time */
-    FFT.Windowing(FFT_WIN_TYP_HAMMING, FFT_FORWARD); /* Weigh data */
-    // Serial.println("Weighed data:");
-    // PrintVector(vReal, samples, SCL_TIME);
-    FFT.Compute(FFT_FORWARD); /* Compute FFT */
-    // Serial.println("Computed Real values:");
-    // PrintVector(vReal, samples, SCL_INDEX);
-    // Serial.println("Computed Imaginary values:");
-    // PrintVector(vImag, samples, SCL_INDEX);
-    FFT.ComplexToMagnitude(); /* Compute magnitudes */
-    Serial.println("Computed magnitudes:");
-    PrintVector(vReal, 20, SCL_FREQUENCY);
+    int maxClass = 0;
+    for (int i = 1; i < EI_CLASSIFIER_LABEL_COUNT; i++) {
+        if (aiResult.classification[i].value > aiResult.classification[maxClass].value) {
+            maxClass = i;
+        }
+    }
 
-    double x = FFT.MajorPeak(vReal, samples, samplingFrequency);
-    Serial.print("Major peak at frequency: ");
-    Serial.println(x, 6);
+    StringSumHelper locString = String("SRID=4326;POINT(") + gps.location.lng() + " " + gps.location.lat() + ")";
+    StringSumHelper timestampString = String("") + gps.date.year() + "-" + gps.date.month() + "-" + gps.date.day() + "T" + gps.time.hour() + ":" + gps.time.minute() + ":" + gps.time.second() + "Z";
+    DataPoint dataPoint = {
+            locString.c_str(),
+            timestampString.c_str(),
+            maxClass
+    };
+
+    httpClient.begin(String(supabaseUrl) + "/rest/v1/" + tableName);
+    httpClient.addHeader("apikey", supabaseApiKey);
+    httpClient.addHeader("Content-Type", "application/json");
+
+    String jsonData = String(R"([{"sensor_id": "ShakeMapSensor-PROD", "location": ")") + dataPoint.location +  R"(", "value": )" + dataPoint.value + "}]";
+    debugPrintln(jsonData.c_str());
+
+    int respCode = httpClient.POST(jsonData);
+    if (respCode >= 200 && respCode < 300) {
+        debugPrintln("Successfully uploaded data!");
+    } else {
+        debugPrint("HTTP Error: ");
+        debugPrintln(String(respCode).c_str());
+    }
+
+    httpClient.end();
+}
+
+void doAIMagic() {
+    EI_IMPULSE_ERROR res = run_classifier(&featuresSignal, &aiResult, false);
+    if (res != 0) {
+        return;
+    }
+
+#ifdef DEBUG_LOG_AI_RESULT
+    debugPrintAIResults(aiResult);
+#endif
 }
 
 void setup() {
@@ -194,6 +260,15 @@ void setup() {
 
     Serial.begin(250000);
 
+    // Connect to wifi
+    WiFi.begin(wifiSsid, wifiPass);
+    Serial.print("Connecting to WiFi...");
+    while (WiFi.status() != WL_CONNECTED) {
+        delay(500);
+        Serial.print(".");
+    }
+    Serial.println(" done!");
+
     // initialize device
     Serial.println("Initializing I2C devices...");
     accelgyro.initialize();
@@ -201,20 +276,51 @@ void setup() {
     // verify connection
     Serial.println("Testing device connections...");
     Serial.println(accelgyro.testConnection() ? "MPU6050 connection successful" : "MPU6050 connection failed");
+    
+    // configure MPU6050 IMU
+    accelgyro.setRate(1);  // 1khz / (1 + 1) = 500 Hz
+
+    accelgyro.setXGyroOffset(220);
+    accelgyro.setYGyroOffset(76);
+    accelgyro.setZGyroOffset(-85);
+    accelgyro.setZAccelOffset(1788);  // 1688 factory default for my test chip
+
+    accelgyro.CalibrateAccel(6);
+    accelgyro.CalibrateGyro(6);
+    accelgyro.PrintActiveOffsets();
+
+    // initial calibration to get gravity vector
+    accelgyro.getAcceleration(&x_offset, &y_offset, &z_offset);
 
     // init GPS
     Serial1.begin(9600, SERIAL_8N1, 34, 12);
 
+    // Check if AI data buffer equals it's expected frame size
+    while (DATA_BUFFER_SIZE * 3 != EI_CLASSIFIER_DSP_INPUT_FRAME_SIZE) {
+        Serial.println("Data buffer size wrong!");
+        delay(500);
+    }
+
+    // Prepare AI analysis
+    featuresSignal.total_length = DATA_BUFFER_SIZE * 3;
+    featuresSignal.get_data = &getFeaturesData;
+
     // acquire data timer
-    acquireDataTimerConfig = timerBegin(0, 80,
-                                        true);  // Timer runs at 80 MHz (prescaler 1), now at 1 MHz with prescaler 80
+    acquireDataTimerConfig = timerBegin(
+        0,
+        80,
+        true
+    );  // Timer runs at 80 MHz (prescaler 1), now at 1 MHz with prescaler 80
     timerAttachInterrupt(acquireDataTimerConfig, &signalAcquireDataTimer, true);
-    timerAlarmWrite(acquireDataTimerConfig, 1000000 / samplingFrequency, true);
+    timerAlarmWrite(acquireDataTimerConfig, 1000000 / DATA_SAMPLING_FREQ, true);
     timerAlarmEnable(acquireDataTimerConfig);
 
     // acquire GPS signal timer
-    acquireGpsSignalTimerConfig = timerBegin(1, 80,
-                                             true);  // Timer runs at 80 MHz (prescaler 1), now at 1 MHz with prescaler 80
+    acquireGpsSignalTimerConfig = timerBegin(
+        1,
+        80,
+        true
+    );  // Timer runs at 80 MHz (prescaler 1), now at 1 MHz with prescaler 80
     timerAttachInterrupt(acquireGpsSignalTimerConfig, &signalAcquireGpsSignalTimer, true);
     timerAlarmWrite(acquireGpsSignalTimerConfig, 1000 * GPS_SAMPLE_TIME_IN_MS, true);
     timerAlarmEnable(acquireGpsSignalTimerConfig);
@@ -229,52 +335,16 @@ void setup() {
             0);        /* Core where the task should run */
 }
 
-uint32_t last_loop_time = 0;
-
 // Runs FFT on acquired data when ready
 void loop() {
     bool dataAquisitionBufferFull = writeIndex == DATA_BUFFER_SIZE;
+    // data aquistion complete, switch buffers
     if (dataAquisitionBufferFull) {
-        // data aquistion complete, switch buffers
         buffer1acquisition = !buffer1acquisition;
         writeIndex = 0;
 
-        // run fft once
-        // Serial.print("FFT on buffer");
-        // Serial.println(buffer1acquisition ? "2" : "1");
-        int16_t *fftBuffer = buffer1acquisition ? buffer2 : buffer1;
-        fft(fftBuffer);
-
-        // Serial.print("Active Aquisition Buffer:");
-        // Serial.print(buffer1acquisition ? "1" : "2");
-        // Serial.println();
+        prepareAIMagic(buffer1acquisition ? buffer2 : buffer1);
+        doAIMagic();
+        sendDataPoint();
     }
-
-    // Serial.print("Active Buffer:");
-    // Serial.print(buffer1acquisition ? "1" : "2");
-    // Serial.print(",WriteIndex:");
-    // Serial.print(writeIndex);
-
-    // // print latest data
-    // if (writeIndex > 0) {
-    //     int16_t *activeBuffer = buffer1acquisition ? buffer1 : buffer2;
-    //     Serial.print(",ax:");
-    //     Serial.print(activeBuffer[(writeIndex * 3) - 3]);
-    //     Serial.print(",ay:");
-    //     Serial.print(activeBuffer[(writeIndex * 3) - 2]);
-    //     Serial.print(",az:");
-    //     Serial.print(activeBuffer[(writeIndex * 3) - 1]);
-    //     Serial.print(",norm:");
-    //     Serial.print(sqrt(pow(activeBuffer[(writeIndex * 3) - 3], 2) + pow(activeBuffer[(writeIndex * 3) - 2], 2) + pow(activeBuffer[(writeIndex * 3) - 1], 2)));
-    // }
-
-    // // Calculate loop time and frequency
-    // uint32_t loop_time = micros() - last_loop_time;
-    // last_loop_time = micros();
-    // float loop_freq = 1000000.0 / loop_time;
-    // Serial.print(",loopFreq:");
-    // Serial.print(loop_freq);
-
-    // Serial.println("");
-    Serial.flush();
 }
