@@ -94,8 +94,8 @@ function App() {
         style={{ position: "absolute", width: "100%", height: "100%" }}
         mapStyle={
           msHackMode
-            ? "https://maps.moritz.tk/style-ms-hack.json"
-            : "https://maps.moritz.tk/style.json"
+            ? "https://maps.mhmk.dev/style-ms-hack.json"
+            : "https://maps.mhmk.dev/style.json"
         }
         onClick={handleClick}
       >
